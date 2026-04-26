@@ -95,27 +95,26 @@ textarea {
 .date-card .week { font-size: 10px; color: #666; }
 
 .content { margin-top: 10px; }
-/* スマホ対応 */
-@media (max-width: 480px) {
 
-  .card {
+/* スマホ時：日記カードだけ横並び */
+@media (max-width: 480px) {
+  .entries .card {
     display: flex;
-    align-items: flex-start;
     gap: 10px;
+    align-items: flex-start;
   }
 
-  .date-card {
+  .entries .date-card {
     position: static;
     width: 48px;
     flex-shrink: 0;
-    margin-top: 2px;
+    border-left: 3px solid #a8d3ff;
   }
 
-  .content {
+  .entries .content {
     margin-top: 0;
     flex: 1;
   }
-
 }
 </style>
 </head>
@@ -126,6 +125,7 @@ textarea {
 
   <div id="filterBar"></div>
 
+  <!-- 入力欄 -->
   <div class="card">
     <textarea id="text" rows="3" placeholder="きょうのこと…"></textarea>
 
@@ -146,11 +146,11 @@ textarea {
     </div>
 
     <input type="file" id="imageInput" accept="image/*">
-
     <button onclick="save()">保存</button>
   </div>
 
-  <div id="list"></div>
+  <!-- 一覧 -->
+  <div id="list" class="entries"></div>
 </div>
 
 <script>
@@ -180,6 +180,7 @@ function toggleTag(tag) {
   } else {
     selectedTags.push(tag);
   }
+
   document.querySelectorAll(".tags button").forEach(btn => {
     btn.classList.toggle("active", selectedTags.includes(btn.innerText));
   });

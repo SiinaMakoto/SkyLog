@@ -29,6 +29,20 @@ body {
   position: relative;
 }
 
+.delete-btn {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  border: none;
+  background: transparent;
+  font-size: 16px;
+  color: #999;
+}
+
+.delete-btn:active {
+  color: #ff6b6b;
+}
+
 textarea {
   width: 100%;
   border: none;
@@ -88,6 +102,8 @@ textarea {
   box-shadow: 0 2px 6px rgba(0,0,0,0.08);
   text-align: center;
   width: 50px;
+
+  pointer-events: none; /* ←入力バグ修正 */
 }
 
 .date-card .month { font-size: 10px; color: #888; }
@@ -96,7 +112,7 @@ textarea {
 
 .content { margin-top: 10px; }
 
-/* スマホ時：日記カードだけ横並び */
+/* スマホ対応 */
 @media (max-width: 480px) {
   .entries .card {
     display: flex;
@@ -147,14 +163,13 @@ textarea {
     </div>
 
     <input type="file" id="imageInput" accept="image/*">
-
     <button onclick="save()">保存</button>
   </div>
 
   <!-- バックアップ -->
   <div class="card">
     <button onclick="exportData()">📤 バックアップ保存</button>
-    <input type="file" id="importFile" accept=".json" onchange="importData(event)">
+    <input type="file" onchange="importData(event)">
   </div>
 
   <!-- 一覧 -->
@@ -229,6 +244,15 @@ function saveEntry(imageData) {
   render();
 }
 
+function deleteEntry(index) {
+  if (!confirm("削除する？")) return;
+
+  let data = JSON.parse(localStorage.getItem("skylog") || "[]");
+  data.splice(index, 1);
+  localStorage.setItem("skylog", JSON.stringify(data));
+  render();
+}
+
 function exportData() {
   const data = localStorage.getItem("skylog") || "[]";
   const blob = new Blob([data], { type: "application/json" });
@@ -264,27 +288,17 @@ function filterTag(tag) {
   render();
 }
 
-function clearFilter() {
-  currentTag = null;
-  render();
-}
-
 function render() {
   const list = document.getElementById("list");
-  const bar = document.getElementById("filterBar");
   let data = JSON.parse(localStorage.getItem("skylog") || "[]");
 
   if (currentTag) {
     data = data.filter(e => e.tags.includes(currentTag));
   }
 
-  bar.innerHTML = currentTag
-    ? `<div class="card">タグ: ${currentTag} <button onclick="clearFilter()">解除</button></div>`
-    : "";
-
   list.innerHTML = "";
 
-  data.forEach(e => {
+  data.forEach((e, index) => {
     const d = formatDate(e.date);
     const div = document.createElement("div");
     div.className = "card";
@@ -298,6 +312,8 @@ function render() {
       : "";
 
     div.innerHTML = `
+      <button class="delete-btn" onclick="deleteEntry(${index})">✕</button>
+
       <div class="date-card">
         <div class="month">${d.month}月</div>
         <div class="day">${d.day}</div>
@@ -316,7 +332,6 @@ function render() {
   });
 }
 
-document.getElementById("text").focus();
 render();
 </script>
 </body>

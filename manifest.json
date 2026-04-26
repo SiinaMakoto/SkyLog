@@ -13,3 +13,4 @@
     }
   ]
 }
+document.getElementById("text").focus();

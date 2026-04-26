@@ -11,6 +11,7 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, sans-serif;
   background: linear-gradient(#dbeeff, #f7fbff);
   color: #333;
+  transition: background 0.6s ease;
 }
 
 .container {
@@ -19,17 +20,13 @@ body {
   padding: 16px;
 }
 
-h1 {
-  font-size: 22px;
-  margin-bottom: 12px;
-}
-
 .card {
   background: white;
   border-radius: 16px;
   padding: 14px;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  position: relative;
 }
 
 textarea {
@@ -53,12 +50,17 @@ textarea {
   background: #a8d3ff;
 }
 
-.tag-input {
-  margin-top: 8px;
-  width: 100%;
+.tags button {
   border: none;
-  border-bottom: 1px solid #ccc;
-  outline: none;
+  background: #eef6ff;
+  margin: 4px;
+  padding: 6px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+.tags button.active {
+  background: #a8d3ff;
 }
 
 .tag {
@@ -74,6 +76,25 @@ textarea {
   font-size: 12px;
   color: #666;
 }
+
+/* 日めくり */
+.date-card {
+  position: absolute;
+  top: -10px;
+  left: 12px;
+  background: #fff;
+  border-radius: 10px;
+  padding: 6px 10px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  text-align: center;
+  width: 50px;
+}
+
+.date-card .month { font-size: 10px; color: #888; }
+.date-card .day { font-size: 18px; font-weight: bold; }
+.date-card .week { font-size: 10px; color: #666; }
+
+.content { margin-top: 10px; }
 </style>
 </head>
 
@@ -81,10 +102,8 @@ textarea {
 <div class="container">
   <h1>☁️ SkyLog</h1>
 
-  <!-- フィルタ表示 -->
   <div id="filterBar"></div>
 
-  <!-- 入力 -->
   <div class="card">
     <textarea id="text" rows="3" placeholder="きょうのこと…"></textarea>
 
@@ -96,39 +115,73 @@ textarea {
       <button onclick="setMood('⚡️')">⚡️</button>
     </div>
 
-    <input id="tags" class="tag-input" placeholder="タグ（カンマ区切り）"/>
+    <div class="tags">
+      <button onclick="toggleTag('日常')">日常</button>
+      <button onclick="toggleTag('青の日')">青の日</button>
+      <button onclick="toggleTag('ねむい')">ねむい</button>
+      <button onclick="toggleTag('しんどい')">しんどい</button>
+      <button onclick="toggleTag('うれしい')">うれしい</button>
+    </div>
+
+    <input type="file" id="imageInput" accept="image/*">
 
     <button onclick="save()">保存</button>
   </div>
 
-  <!-- 一覧 -->
   <div id="list"></div>
 </div>
 
 <script>
 let mood = "";
+let selectedTags = [];
 let currentTag = null;
+
+const moodColors = {
+  "☀️": "linear-gradient(#a8d8ff, #eaf6ff)",
+  "🌤️": "linear-gradient(#cfeaff, #f7fbff)",
+  "☁️": "linear-gradient(#e0e6ed, #f8f9fb)",
+  "☔️": "linear-gradient(#bfc9d4, #e6ebf1)",
+  "⚡️": "linear-gradient(#8f9aa8, #d6dbe3)"
+};
 
 function setMood(m) {
   mood = m;
   document.querySelectorAll(".moods button").forEach(btn => {
-    btn.classList.remove("active");
-    if (btn.innerText === m) btn.classList.add("active");
+    btn.classList.toggle("active", btn.innerText === m);
+  });
+  document.body.style.background = moodColors[m];
+}
+
+function toggleTag(tag) {
+  if (selectedTags.includes(tag)) {
+    selectedTags = selectedTags.filter(t => t !== tag);
+  } else {
+    selectedTags.push(tag);
+  }
+  document.querySelectorAll(".tags button").forEach(btn => {
+    btn.classList.toggle("active", selectedTags.includes(btn.innerText));
   });
 }
 
 function save() {
-  const text = document.getElementById("text").value;
-  const tags = document.getElementById("tags").value
-    .split(",")
-    .map(t => t.trim())
-    .filter(t => t);
+  const file = document.getElementById("imageInput").files[0];
 
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = e => saveEntry(e.target.result);
+    reader.readAsDataURL(file);
+  } else {
+    saveEntry(null);
+  }
+}
+
+function saveEntry(imageData) {
   const entry = {
-    date: new Date().toLocaleString(),
-    text,
-    tags,
-    mood
+    date: new Date().toISOString(),
+    text: document.getElementById("text").value,
+    tags: selectedTags,
+    mood,
+    image: imageData
   };
 
   let data = JSON.parse(localStorage.getItem("skylog") || "[]");
@@ -136,11 +189,23 @@ function save() {
   localStorage.setItem("skylog", JSON.stringify(data));
 
   document.getElementById("text").value = "";
-  document.getElementById("tags").value = "";
+  document.getElementById("imageInput").value = "";
   mood = "";
-  document.querySelectorAll(".moods button").forEach(btn => btn.classList.remove("active"));
+  selectedTags = [];
+
+  document.querySelectorAll(".active").forEach(e => e.classList.remove("active"));
+  document.body.style.background = "linear-gradient(#dbeeff, #f7fbff)";
 
   render();
+}
+
+function formatDate(dateStr) {
+  const d = new Date(dateStr);
+  return {
+    month: d.getMonth() + 1,
+    day: d.getDate(),
+    week: ["日","月","火","水","木","金","土"][d.getDay()]
+  };
 }
 
 function filterTag(tag) {
@@ -162,42 +227,45 @@ function render() {
     data = data.filter(e => e.tags.includes(currentTag));
   }
 
-  // フィルタバー
-  if (currentTag) {
-    bar.innerHTML = `
-      <div class="card">
-        タグ: ${currentTag}
-        <button onclick="clearFilter()">解除</button>
-      </div>
-    `;
-  } else {
-    bar.innerHTML = "";
-  }
+  bar.innerHTML = currentTag
+    ? `<div class="card">タグ: ${currentTag} <button onclick="clearFilter()">解除</button></div>`
+    : "";
 
   list.innerHTML = "";
 
   data.forEach(e => {
+    const d = formatDate(e.date);
     const div = document.createElement("div");
     div.className = "card";
 
-    const tagHTML = e.tags.map(tag =>
+    const tags = e.tags.map(tag =>
       `<span class="tag" onclick="filterTag('${tag}')">${tag}</span>`
     ).join(" ");
 
+    const img = e.image
+      ? `<img src="${e.image}" style="width:100%; border-radius:12px; margin-top:8px;">`
+      : "";
+
     div.innerHTML = `
-      <div>${e.mood || ""}</div>
-      <div>${e.text}</div>
-      <div class="small">${tagHTML}</div>
-      <div class="small">${e.date}</div>
+      <div class="date-card">
+        <div class="month">${d.month}月</div>
+        <div class="day">${d.day}</div>
+        <div class="week">${d.week}</div>
+      </div>
+
+      <div class="content">
+        <div>${e.mood || ""}</div>
+        <div>${e.text}</div>
+        ${img}
+        <div class="small">${tags}</div>
+      </div>
     `;
 
     list.appendChild(div);
   });
 }
 
-// 起動時フォーカス
 document.getElementById("text").focus();
-
 render();
 </script>
 </body>

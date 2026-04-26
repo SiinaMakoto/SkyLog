@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SkyLog</title>
+
+<style>
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  background: linear-gradient(#dbeeff, #f7fbff);
+  color: #333;
+}
+
+.container {
+  max-width: 600px;
+  margin: auto;
+  padding: 16px;
+}
+
+h1 {
+  font-size: 22px;
+  margin-bottom: 12px;
+}
+
+.card {
+  background: white;
+  border-radius: 16px;
+  padding: 14px;
+  margin-bottom: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+textarea {
+  width: 100%;
+  border: none;
+  resize: none;
+  font-size: 14px;
+  outline: none;
+}
+
+.moods button {
+  border: none;
+  background: #eef6ff;
+  margin: 4px;
+  padding: 8px;
+  border-radius: 50%;
+  font-size: 18px;
+}
+
+.moods button.active {
+  background: #a8d3ff;
+}
+
+.tag-input {
+  margin-top: 8px;
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid #ccc;
+  outline: none;
+}
+
+.entry {
+  margin-top: 10px;
+}
+
+.small {
+  font-size: 12px;
+  color: #666;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+  <h1>☁️ SkyLog</h1>
+
+  <div class="card">
+    <textarea id="text" rows="3" placeholder="きょうのこと…"></textarea>
+
+    <div class="moods">
+  <button onclick="setMood('☀️')">☀️</button>
+  <button onclick="setMood('🌤️')">🌤️</button>
+  <button onclick="setMood('☁️')">☁️</button>
+  <button onclick="setMood('☔️')">☔️</button>
+  <button onclick="setMood('⚡️')">⚡️</button>
+    </div>
+
+    <input id="tags" class="tag-input" placeholder="タグ（カンマ区切り）"/>
+
+    <button onclick="save()">保存</button>
+  </div>
+
+  <div id="list"></div>
+</div>
+
+<script>
+let mood = "";
+
+function setMood(m) {
+  mood = m;
+  document.querySelectorAll(".moods button").forEach(btn => {
+    btn.classList.remove("active");
+    if (btn.innerText === m) btn.classList.add("active");
+  });
+}
+
+function save() {
+  const text = document.getElementById("text").value;
+  const tags = document.getElementById("tags").value.split(",");
+
+  const entry = {
+    date: new Date().toLocaleString(),
+    text,
+    tags,
+    mood
+  };
+
+  let data = JSON.parse(localStorage.getItem("skylog") || "[]");
+  data.unshift(entry);
+  localStorage.setItem("skylog", JSON.stringify(data));
+
+  document.getElementById("text").value = "";
+  document.getElementById("tags").value = "";
+  mood = "";
+
+  render();
+}
+
+function render() {
+  const list = document.getElementById("list");
+  const data = JSON.parse(localStorage.getItem("skylog") || "[]");
+
+  list.innerHTML = "";
+
+  data.forEach(e => {
+    const div = document.createElement("div");
+    div.className = "card entry";
+
+    div.innerHTML = `
+      <div>${e.mood || ""}</div>
+      <div>${e.text}</div>
+      <div class="small">${e.tags.join(", ")}</div>
+      <div class="small">${e.date}</div>
+    `;
+
+    list.appendChild(div);
+  });
+}
+
+render();
+</script>
+</body>
+</html>

@@ -69,7 +69,6 @@ textarea {
 
 .small { font-size: 12px; color: #666; }
 
-/* 日めくり */
 .date-card {
   position: absolute;
   top: -10px;
@@ -90,7 +89,6 @@ textarea {
 
 .content { margin-top: 10px; }
 
-/* スマホ */
 @media (max-width: 480px) {
   .entries .card {
     display: flex;
@@ -110,6 +108,7 @@ textarea {
 <div class="container">
   <h1>☁️ SkyLog</h1>
 
+  <!-- 入力 -->
   <div class="card">
     <textarea id="text" rows="3" placeholder="きょうのこと…"></textarea>
 
@@ -134,6 +133,13 @@ textarea {
     <button onclick="save()">保存</button>
   </div>
 
+  <!-- バックアップ -->
+  <div class="card">
+    <button onclick="exportData()">📤 バックアップ保存</button>
+    <input type="file" onchange="importData(event)">
+  </div>
+
+  <!-- 一覧 -->
   <div id="list" class="entries"></div>
 </div>
 
@@ -198,8 +204,10 @@ function saveEntry(imageData) {
   document.getElementById("imageInput").value = "";
   mood = "";
   selectedTags = [];
+
   document.querySelectorAll(".active").forEach(e => e.classList.remove("active"));
   document.body.style.background = "linear-gradient(#dbeeff, #f7fbff)";
+
   render();
 }
 
@@ -209,6 +217,26 @@ function deleteEntry(index) {
   data.splice(index, 1);
   localStorage.setItem("skylog", JSON.stringify(data));
   render();
+}
+
+function exportData() {
+  const data = localStorage.getItem("skylog") || "[]";
+  const blob = new Blob([data], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "skylog_backup.json";
+  a.click();
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    localStorage.setItem("skylog", e.target.result);
+    render();
+  };
+  reader.readAsText(file);
 }
 
 function formatDate(dateStr) {

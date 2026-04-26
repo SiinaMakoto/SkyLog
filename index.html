@@ -95,6 +95,28 @@ textarea {
 .date-card .week { font-size: 10px; color: #666; }
 
 .content { margin-top: 10px; }
+/* スマホ対応 */
+@media (max-width: 480px) {
+
+  .card {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .date-card {
+    position: static;
+    width: 48px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .content {
+    margin-top: 0;
+    flex: 1;
+  }
+
+}
 </style>
 </head>
 

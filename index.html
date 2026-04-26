@@ -39,10 +39,6 @@ body {
   color: #999;
 }
 
-.delete-btn:active {
-  color: #ff6b6b;
-}
-
 textarea {
   width: 100%;
   border: none;
@@ -51,31 +47,16 @@ textarea {
   outline: none;
 }
 
-.moods button {
-  border: none;
-  background: #eef6ff;
-  margin: 4px;
-  padding: 8px;
-  border-radius: 50%;
-  font-size: 18px;
-}
-
-.moods button.active {
-  background: #a8d3ff;
-}
-
-.tags button {
+.moods button, .tags button {
   border: none;
   background: #eef6ff;
   margin: 4px;
   padding: 6px 10px;
   border-radius: 12px;
-  font-size: 12px;
 }
 
-.tags button.active {
-  background: #a8d3ff;
-}
+.moods button { border-radius: 50%; font-size: 18px; }
+.moods button.active, .tags button.active { background: #a8d3ff; }
 
 .tag {
   display: inline-block;
@@ -86,10 +67,7 @@ textarea {
   font-size: 12px;
 }
 
-.small {
-  font-size: 12px;
-  color: #666;
-}
+.small { font-size: 12px; color: #666; }
 
 /* 日めくり */
 .date-card {
@@ -101,36 +79,29 @@ textarea {
   padding: 6px 10px;
   box-shadow: 0 2px 6px rgba(0,0,0,0.08);
   text-align: center;
-  width: 50px;
-
-  pointer-events: none; /* ←入力バグ修正 */
+  width: 60px;
+  pointer-events: none;
 }
 
 .date-card .month { font-size: 10px; color: #888; }
 .date-card .day { font-size: 18px; font-weight: bold; }
 .date-card .week { font-size: 10px; color: #666; }
+.date-card .time { font-size: 10px; color: #999; margin-top: 2px; }
 
 .content { margin-top: 10px; }
 
-/* スマホ対応 */
+/* スマホ */
 @media (max-width: 480px) {
   .entries .card {
     display: flex;
     gap: 10px;
-    align-items: flex-start;
   }
-
   .entries .date-card {
     position: static;
-    width: 48px;
-    flex-shrink: 0;
+    width: 56px;
     border-left: 3px solid #a8d3ff;
   }
-
-  .entries .content {
-    margin-top: 0;
-    flex: 1;
-  }
+  .entries .content { margin-top: 0; flex: 1; }
 }
 </style>
 </head>
@@ -139,9 +110,6 @@ textarea {
 <div class="container">
   <h1>☁️ SkyLog</h1>
 
-  <div id="filterBar"></div>
-
-  <!-- 入力 -->
   <div class="card">
     <textarea id="text" rows="3" placeholder="きょうのこと…"></textarea>
 
@@ -166,20 +134,12 @@ textarea {
     <button onclick="save()">保存</button>
   </div>
 
-  <!-- バックアップ -->
-  <div class="card">
-    <button onclick="exportData()">📤 バックアップ保存</button>
-    <input type="file" onchange="importData(event)">
-  </div>
-
-  <!-- 一覧 -->
   <div id="list" class="entries"></div>
 </div>
 
 <script>
 let mood = "";
 let selectedTags = [];
-let currentTag = null;
 
 const moodColors = {
   "☀️": "linear-gradient(#a8d8ff, #eaf6ff)",
@@ -210,7 +170,6 @@ function toggleTag(tag) {
 
 function save() {
   const file = document.getElementById("imageInput").files[0];
-
   if (file) {
     const reader = new FileReader();
     reader.onload = e => saveEntry(e.target.result);
@@ -221,8 +180,10 @@ function save() {
 }
 
 function saveEntry(imageData) {
+  const now = new Date();
   const entry = {
-    date: new Date().toISOString(),
+    date: now.toISOString(),
+    time: now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
     text: document.getElementById("text").value,
     tags: selectedTags,
     mood,
@@ -237,64 +198,31 @@ function saveEntry(imageData) {
   document.getElementById("imageInput").value = "";
   mood = "";
   selectedTags = [];
-
   document.querySelectorAll(".active").forEach(e => e.classList.remove("active"));
   document.body.style.background = "linear-gradient(#dbeeff, #f7fbff)";
-
   render();
 }
 
 function deleteEntry(index) {
   if (!confirm("削除する？")) return;
-
   let data = JSON.parse(localStorage.getItem("skylog") || "[]");
   data.splice(index, 1);
   localStorage.setItem("skylog", JSON.stringify(data));
   render();
 }
 
-function exportData() {
-  const data = localStorage.getItem("skylog") || "[]";
-  const blob = new Blob([data], { type: "application/json" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "skylog_backup.json";
-  a.click();
-}
-
-function importData(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = e => {
-    localStorage.setItem("skylog", e.target.result);
-    render();
-  };
-  reader.readAsText(file);
-}
-
 function formatDate(dateStr) {
   const d = new Date(dateStr);
   return {
-    month: d.getMonth() + 1,
+    month: d.getMonth()+1,
     day: d.getDate(),
     week: ["日","月","火","水","木","金","土"][d.getDay()]
   };
 }
 
-function filterTag(tag) {
-  currentTag = tag;
-  render();
-}
-
 function render() {
   const list = document.getElementById("list");
   let data = JSON.parse(localStorage.getItem("skylog") || "[]");
-
-  if (currentTag) {
-    data = data.filter(e => e.tags.includes(currentTag));
-  }
 
   list.innerHTML = "";
 
@@ -303,13 +231,8 @@ function render() {
     const div = document.createElement("div");
     div.className = "card";
 
-    const tags = e.tags.map(tag =>
-      `<span class="tag" onclick="filterTag('${tag}')">${tag}</span>`
-    ).join(" ");
-
-    const img = e.image
-      ? `<img src="${e.image}" style="width:100%; border-radius:12px; margin-top:8px;">`
-      : "";
+    const img = e.image ? `<img src="${e.image}" style="width:100%; border-radius:12px; margin-top:8px;">` : "";
+    const tags = e.tags.map(t => `<span class="tag">${t}</span>`).join("");
 
     div.innerHTML = `
       <button class="delete-btn" onclick="deleteEntry(${index})">✕</button>
@@ -318,6 +241,7 @@ function render() {
         <div class="month">${d.month}月</div>
         <div class="day">${d.day}</div>
         <div class="week">${d.week}</div>
+        <div class="time">${e.time || ""}</div>
       </div>
 
       <div class="content">
